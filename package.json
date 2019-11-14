@@ -1,0 +1,40 @@
+{
+    "name": "hyperapp-map",
+    "version": "1.0.0",
+    "description": "utility for advanced state management in hyperapp",
+    "main": "src/index.js",
+    "scripts": {
+        "bundle": "rollup -i src/index.js -o dist/hyperappmap.js --no-strict --no-esModule -mf iife -n hyperappmap",
+        "minify": "terser dist/hyperappmap.js -o dist/hyperappmap.js -mc --source-map includeSources,url=hyperappmap.js.map",
+        "build": "npm run bundle && npm run minify",
+        "test": "ava"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/zaceno/hyperapp-map.git"
+    },
+    "keywords": [
+        "hyperapp",
+        "state",
+        "actions",
+        "modules"
+    ],
+    "author": "Zacharias Enochsson",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/zaceno/hyperapp-map/issues"
+    },
+    "homepage": "https://github.com/zaceno/hyperapp-map#readme",
+    "ava": {
+        "require": [
+            "esm"
+        ]
+    },
+    "devDependencies": {
+        "ava": "^2.4.0",
+        "esm": "^3.2.25",
+        "hyperapp": "^2.0.3",
+        "rollup": "^1.27.0",
+        "undom": "^0.4.0"
+    }
+}
