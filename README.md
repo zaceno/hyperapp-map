@@ -7,6 +7,8 @@ Use it to
 - React to specific state configurations
 - What else? ...You tell me!
 
+Have a look at this [Crash-Course Example](https://codepen.io/zaceno/pen/ExxdzJZ?editors=0011) to dive right in and get an idea of what this does.
+
 
 ## Installation ##
 
