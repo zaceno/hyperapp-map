@@ -31,7 +31,7 @@ const map = hyperappmap
 
 Import directly to your scripts from CDB:
 
-```
+```js
 import map from 'https://unpkg.com/hyperapp-map'
 ```
 
@@ -45,7 +45,7 @@ npm i hyperapp-map
 
 And then import in your scripts like this:
 
-```
+```js
 import map from 'hyperapp-map'
 ```
 
@@ -53,7 +53,7 @@ import map from 'hyperapp-map'
 
 Basic usage is as follows:
 
-```
+```js
 map(extract, merge, target)
 ```
 
