@@ -114,7 +114,7 @@ app({
 
 In this example, we're mapping a vnode. `map` returns a new vnode, identical to the one given with the important difference that _any_ action – both `increment` and `decrement` dispatched from within it, will be pre- & post-processed according to the given `extract` and merge function. In this case, it means that clicking the '+' and '-' buttons will increment and decrement the `foo` property of the state only, without us needing to map each action individually.
 
-### Mapping subs ###
+### Mapping subscriptions ###
 
 When map is given an array as its target, it assumes it is an array of subscriptions. It will return the same array of subscriptions, except mapped, so that any action dispatched from the subscriptions will be pre- & post-processed according to the given `extract` and `merge`
 
