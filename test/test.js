@@ -59,12 +59,10 @@ const testApp = def => {
 /*
     Calls map with predefined extractor and merger for slice "foo"
 */
-const sliceMap = x =>
-    map(
-        s => s.foo,
-        (s, y) => ({ ...s, foo: y }),
-        x
-    )
+const sliceMap = map(
+    s => s.foo,
+    (s, y) => ({ ...s, foo: y })
+)
 
 test('dispatch mapped action', t => {
     const { state, dispatch } = testApp({ init: { foo: 2, bar: 5 } })
@@ -604,12 +602,10 @@ test.cb('immediately nested views should also work', t => {
 })
 
 test.cb('changing map of vnode should work', t => {
-    const barMap = x =>
-        map(
-            s => s.bar,
-            (s, y) => ({ ...s, bar: y }),
-            x
-        )
+    const barMap = map(
+        s => s.bar,
+        (s, y) => ({ ...s, bar: y })
+    )
     const add = (x, y) => x + y
     const { state, event } = testApp({
         init: { foo: 3, bar: 1 },
@@ -625,5 +621,26 @@ test.cb('changing map of vnode should work', t => {
             t.deepEqual(state(), { foo: 4, bar: 2 })
             t.end()
         }, 0)
+    }, 0)
+})
+
+test.cb('merge can return unmapped effect tuple', t => {
+    const myMap = map(
+        state => state,
+        (oldState, newState) => (newState.foo > 1 ? upBar(newState) : newState)
+    )
+    const exec = (f => a => [f, { a }])((d, { a }) => d(a))
+    const upFoo = state => ({ ...state, foo: state.foo + 1 })
+    const upBar = state => [{ ...state, bar: state.bar + 1 }, exec(upBaz)]
+    const upBaz = state => ({ ...state, baz: state.baz + 1 })
+    const { state, event } = testApp({
+        init: { foo: 1, bar: 1, baz: 1 },
+        view: state =>
+            myMap(h('button', { id: 'button', onclick: upFoo }, '+')),
+    })
+    setTimeout(_ => {
+        event('button', 'click')
+        t.deepEqual(state(), { foo: 2, bar: 2, baz: 2 })
+        t.end()
     }, 0)
 })
