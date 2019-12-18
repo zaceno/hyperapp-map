@@ -1,18 +1,7 @@
-/*
-
-makeActionMap = (extract, merge) -> action Map
-
-put any Action in it, and it will return the corresponding action
-it will first dig into a stack of payload filters to apply the transform
-to the actual function. If the actual function is in memo, it will return
-the memoized transform. Otherwise it will return a new transform of the action
-and memoize the transform. And part of that means using the
-
-*/
 const isFunc = x => typeof x === 'function'
-
+const isArray = x => Array.isArray(x)
 const isAction = action =>
-    isFunc(action) || (Array.isArray(action) && isAction(action[0]))
+    isFunc(action) || (isArray(action) && isAction(action[0]))
 
 const deepMap = (map, action) =>
     isFunc(action) ? map(action) : [deepMap(map, action[0]), action[1]]
@@ -20,7 +9,7 @@ const deepMap = (map, action) =>
 const getResult = (action, state, payload) =>
     isFunc(action)
         ? getResult(action(state, payload), state)
-        : !Array.isArray(action)
+        : !isArray(action)
         ? [action]
         : isAction(action)
         ? getResult(
@@ -30,7 +19,7 @@ const getResult = (action, state, payload) =>
           )
         : action
 
-const makeActionMap = (extract, merge) => {
+export const makeMap = (extract, merge) => {
     let rawMap = actionFn => (
         state,
         data,
@@ -38,7 +27,7 @@ const makeActionMap = (extract, merge) => {
         fullResult = getResult(merge, state, subResult[0])
     ) => [
         fullResult[0],
-        ...mapEffects(actualMap, subResult.slice(1)),
+        ...mapSubs(actualMap, subResult.slice(1)),
         ...fullResult.slice(1),
     ]
 
@@ -51,30 +40,34 @@ const makeActionMap = (extract, merge) => {
         return mappedAction
     }
     memoizedMap.memo = new Map()
+
     let actualMap = actionStack => deepMap(memoizedMap, actionStack)
     return actualMap
 }
 
-const mapObj = (map, obj) =>
+const mapObj = (map, obj, fn) =>
     Object.entries(obj)
-        .map(([k, v]) => [k, isAction(v) ? map(v) : v])
+        .map(([k, v]) => [k, fn(k, v)])
         .reduce((o, [k, v]) => ((o[k] = v), o), {})
 
-const mapEffects = (map, effects) =>
-    effects.map(([fn, opt]) => [fn, mapObj(map, opt)])
+const mapEach = f => (map, x) =>
+    isArray(x) ? x.map(y => f(map, y)) : f(map, x)
 
-const mapVNode = (map, vnode) =>
+export const mapSubs = mapEach((map, [fn, opt]) => [
+    fn,
+    mapObj(map, opt, (k, v) => (isAction(v) ? map(v) : v)),
+])
+
+export const mapVNode = mapEach((map, vnode) =>
     vnode.props
         ? {
               ...vnode,
-              props: mapObj(map, vnode.props),
+              props: mapObj(map, vnode.props, (k, v) =>
+                  !v ? v : !k.startsWith('on') ? v : v.pass ? v.pass : map(v)
+              ),
               children: vnode.children.map(child => mapVNode(map, child)),
           }
         : vnode
+)
 
-export default (extract, merge, map = makeActionMap(extract, merge)) => x =>
-    isFunc(x)
-        ? map(x)
-        : Array.isArray(x)
-        ? mapEffects(map, x)
-        : mapVNode(map, x)
+export const mapPass = x => mapVNode(pass => ({ pass }), x)

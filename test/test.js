@@ -1,7 +1,7 @@
 import 'undom/register'
 import test from 'ava'
 import { h, app } from 'hyperapp'
-import map from '../src/index.js'
+import { makeMap, mapVNode, mapSubs, mapPass } from '../src/index.js'
 /*
 In a DOM node, find the first one with given id and return it
 or null, if it doesn't exist
@@ -59,7 +59,7 @@ const testApp = def => {
 /*
     Calls map with predefined extractor and merger for slice "foo"
 */
-const sliceMap = map(
+const sliceMap = makeMap(
     s => s.foo,
     (s, y) => ({ ...s, foo: y })
 )
@@ -181,7 +181,7 @@ test('subscribe to mapped action', t => {
     const mul = (x, y) => x * y
     const { state } = testApp({
         init: { foo: 3, bar: 1 },
-        subscriptions: state => sliceMap([sub(mul)]),
+        subscriptions: state => mapSubs(sliceMap, [sub(mul)]),
     })
     trigger(4)
     t.deepEqual(state(), { foo: 12, bar: 1 })
@@ -201,7 +201,7 @@ test('does not restart subscription for mapped sub', t => {
     const mul = (x, y) => x * y
     const { state } = testApp({
         init: { foo: 3, bar: 1 },
-        subscriptions: state => sliceMap([sub(mul)]),
+        subscriptions: state => mapSubs(sliceMap, [sub(mul)]),
     })
     trigger(4)
     trigger(4)
@@ -221,7 +221,7 @@ test('subscribe to mapped action with payload', t => {
     const mul = (x, y) => x * y
     const { state } = testApp({
         init: { foo: 3, bar: 1 },
-        subscriptions: state => sliceMap([sub([mul, x => x + 2])]),
+        subscriptions: state => mapSubs(sliceMap, [sub([mul, x => x + 2])]),
     })
     trigger(4)
     t.deepEqual(state(), { foo: 18, bar: 1 })
@@ -240,7 +240,7 @@ test('subscribe to mapped action that returns other action', t => {
     const op = (x, z) => [mul, z]
     const { state } = testApp({
         init: { foo: 3, bar: 1 },
-        subscriptions: state => sliceMap([sub([op, x => x + 2])]),
+        subscriptions: state => mapSubs(sliceMap, [sub([op, x => x + 2])]),
     })
     trigger(4)
     t.deepEqual(state(), { foo: 18, bar: 1 })
@@ -261,7 +261,8 @@ test('mapped subs with actions with effects with actions', t => {
     const addNMulN = (x, y) => [add(x, y), exec(mul, y)]
     const { state } = testApp({
         init: { foo: 3, bar: 1 },
-        subscriptions: state => sliceMap([sub([addNMulN, x => x + 1])]),
+        subscriptions: state =>
+            mapSubs(sliceMap, [sub([addNMulN, x => x + 1])]),
     })
     trigger(2)
     t.deepEqual(state(), { foo: 18, bar: 1 })
@@ -282,7 +283,8 @@ test('mapped subs with actions with effects with actions with payloads', t => {
     const addNMulN = (x, y) => [add(x, y), exec([mul, y])]
     const { state } = testApp({
         init: { foo: 3, bar: 1 },
-        subscriptions: state => sliceMap([sub([addNMulN, x => x + 1])]),
+        subscriptions: state =>
+            mapSubs(sliceMap, [sub([addNMulN, x => x + 1])]),
     })
     trigger(2)
     t.deepEqual(state(), { foo: 18, bar: 1 })
@@ -302,7 +304,8 @@ test('subscribe to twice mapped action', t => {
     const mul = (x, y) => x * y
     const { state } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
-        subscriptions: state => sliceMap(sliceMap([sub(mul)])),
+        subscriptions: state =>
+            mapSubs(sliceMap, mapSubs(sliceMap, [sub(mul)])),
     })
     trigger(4)
     t.deepEqual(state(), { foo: { foo: 12, baz: 2 }, bar: 1 })
@@ -320,7 +323,8 @@ test('subscribe to twice mapped action with payload', t => {
     const mul = (x, y) => x * y
     const { state } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
-        subscriptions: state => sliceMap(sliceMap([sub([mul, x => x + 2])])),
+        subscriptions: state =>
+            mapSubs(sliceMap, mapSubs(sliceMap, [sub([mul, x => x + 2])])),
     })
     trigger(4)
     t.deepEqual(state(), { foo: { foo: 18, baz: 2 }, bar: 1 })
@@ -339,7 +343,8 @@ test('subscribe to twice mapped action that returns other action', t => {
     const op = (x, z) => [mul, z]
     const { state } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
-        subscriptions: state => sliceMap(sliceMap([sub([op, x => x + 2])])),
+        subscriptions: state =>
+            mapSubs(sliceMap, mapSubs(sliceMap, [sub([op, x => x + 2])])),
     })
     trigger(4)
     t.deepEqual(state(), { foo: { foo: 18, baz: 2 }, bar: 1 })
@@ -361,7 +366,7 @@ test('twice mapped subs with actions with effects with actions', t => {
     const { state } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
         subscriptions: state =>
-            sliceMap(sliceMap([sub([addNMulN, x => x + 1])])),
+            mapSubs(sliceMap, mapSubs(sliceMap, [sub([addNMulN, x => x + 1])])),
     })
     trigger(2)
     t.deepEqual(state(), { foo: { foo: 18, baz: 2 }, bar: 1 })
@@ -383,7 +388,7 @@ test('twice mapped subs with actions with effects with actions with payloads', t
     const { state } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
         subscriptions: state =>
-            sliceMap(sliceMap([sub([addNMulN, x => x + 1])])),
+            mapSubs(sliceMap, mapSubs(sliceMap, [sub([addNMulN, x => x + 1])])),
     })
     trigger(2)
     t.deepEqual(state(), { foo: { foo: 18, baz: 2 }, bar: 1 })
@@ -394,7 +399,10 @@ test.cb('mapped view with action', t => {
     const { state, event } = testApp({
         init: { foo: 3, bar: 1 },
         view: state =>
-            sliceMap(h('button', { id: 'button', onclick: [add, 1] }, '+')),
+            mapVNode(
+                sliceMap,
+                h('button', { id: 'button', onclick: [add, 1] }, '+')
+            ),
     })
     setTimeout(_ => {
         event('button', 'click')
@@ -409,7 +417,10 @@ test.cb('mapped view with action that returns action', t => {
     const { state, event } = testApp({
         init: { foo: 3, bar: 1 },
         view: state =>
-            sliceMap(h('button', { id: 'button', onclick: [op, 1] }, '+')),
+            mapVNode(
+                sliceMap,
+                h('button', { id: 'button', onclick: [op, 1] }, '+')
+            ),
     })
     setTimeout(_ => {
         event('button', 'click')
@@ -426,7 +437,8 @@ test.cb('mapped view with actions with effects with actions', t => {
     const { state, event } = testApp({
         init: { foo: 3, bar: 1 },
         view: state =>
-            sliceMap(
+            mapVNode(
+                sliceMap,
                 h('button', { id: 'button', onclick: [addNMulN, 4] }, '+')
             ),
     })
@@ -447,7 +459,8 @@ test.cb(
         const { state, event } = testApp({
             init: { foo: 3, bar: 1 },
             view: state =>
-                sliceMap(
+                mapVNode(
+                    sliceMap,
                     h('button', { id: 'button', onclick: [addNMulN, 4] }, '+')
                 ),
         })
@@ -466,10 +479,12 @@ test.cb('nested mapped view with action', t => {
     const { state, event } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
         view: state =>
-            sliceMap(
+            mapVNode(
+                sliceMap,
                 h('div', {}, [
                     h('div', {}, [
-                        sliceMap(
+                        mapVNode(
+                            sliceMap,
                             h(
                                 'button',
                                 { id: 'button', onclick: [add, 1] },
@@ -493,10 +508,12 @@ test.cb('nested mapped view with action that returns action', t => {
     const { state, event } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
         view: state =>
-            sliceMap(
+            mapVNode(
+                sliceMap,
                 h('div', {}, [
                     h('div', {}, [
-                        sliceMap(
+                        mapVNode(
+                            sliceMap,
                             h(
                                 'button',
                                 { id: 'button', onclick: [add, 1] },
@@ -522,10 +539,12 @@ test.cb('nested mapped view with actions with effects with actions', t => {
     const { state, event } = testApp({
         init: { foo: { foo: 3, baz: 2 }, bar: 1 },
         view: state =>
-            sliceMap(
+            mapVNode(
+                sliceMap,
                 h('div', {}, [
                     h('div', {}, [
-                        sliceMap(
+                        mapVNode(
+                            sliceMap,
                             h(
                                 'button',
                                 { id: 'button', onclick: [addNMulN, 4] },
@@ -553,10 +572,12 @@ test.cb(
         const { state, event } = testApp({
             init: { foo: { foo: 3, baz: 2 }, bar: 1 },
             view: state =>
-                sliceMap(
+                mapVNode(
+                    sliceMap,
                     h('div', {}, [
                         h('div', {}, [
-                            sliceMap(
+                            mapVNode(
+                                sliceMap,
                                 h(
                                     'button',
                                     { id: 'button', onclick: [addNMulN, 4] },
@@ -582,8 +603,10 @@ test.cb('immediately nested views should also work', t => {
         view: state =>
             h('div', {}, [
                 h('div', {}, [
-                    sliceMap(
-                        sliceMap(
+                    mapVNode(
+                        sliceMap,
+                        mapVNode(
+                            sliceMap,
                             h(
                                 'button',
                                 { id: 'button', onclick: [add, 1] },
@@ -602,7 +625,7 @@ test.cb('immediately nested views should also work', t => {
 })
 
 test.cb('changing map of vnode should work', t => {
-    const barMap = map(
+    const barMap = makeMap(
         s => s.bar,
         (s, y) => ({ ...s, bar: y })
     )
@@ -610,7 +633,8 @@ test.cb('changing map of vnode should work', t => {
     const { state, event } = testApp({
         init: { foo: 3, bar: 1 },
         view: state =>
-            (state.foo > 3 ? barMap : sliceMap)(
+            mapVNode(
+                state.foo > 3 ? barMap : sliceMap,
                 h('button', { id: 'button', onclick: [add, 1] }, '+')
             ),
     })
@@ -625,7 +649,7 @@ test.cb('changing map of vnode should work', t => {
 })
 
 test.cb('merge can return unmapped effect tuple', t => {
-    const myMap = map(
+    const myMap = makeMap(
         state => state,
         (oldState, newState) => (newState.foo > 1 ? upBar(newState) : newState)
     )
@@ -636,11 +660,111 @@ test.cb('merge can return unmapped effect tuple', t => {
     const { state, event } = testApp({
         init: { foo: 1, bar: 1, baz: 1 },
         view: state =>
-            myMap(h('button', { id: 'button', onclick: upFoo }, '+')),
+            mapVNode(myMap, h('button', { id: 'button', onclick: upFoo }, '+')),
     })
     setTimeout(_ => {
         event('button', 'click')
         t.deepEqual(state(), { foo: 2, bar: 2, baz: 2 })
+        t.end()
+    }, 0)
+})
+
+test.cb('mapPass protects from outer map', t => {
+    const fooMap = makeMap(
+        x => x.foo,
+        (x, foo) => ({ ...x, foo })
+    )
+    const change = state => 'changed'
+    const { state, event } = testApp({
+        init: { foo: 'original' },
+        view: state =>
+            h('div', {}, [
+                mapVNode(
+                    fooMap,
+                    h(
+                        'div',
+                        {},
+                        mapPass([
+                            h('button', { id: 'button', onclick: change }),
+                        ])
+                    )
+                ),
+            ]),
+    })
+    setTimeout(_ => {
+        event('button', 'click')
+        t.deepEqual(state(), 'changed')
+        t.end()
+    }, 0)
+})
+test.cb('mapPassthrouhg does not prevent inner map', t => {
+    const fooMap = makeMap(
+        x => x.foo,
+        (x, foo) => ({ ...x, foo })
+    )
+    const barMap = makeMap(
+        x => x.bar,
+        (x, bar) => ({ ...x, bar })
+    )
+    const change = state => 'changed'
+    const { state, event } = testApp({
+        init: { foo: 'original', bar: 'original' },
+        view: state =>
+            mapVNode(
+                fooMap,
+                h(
+                    'div',
+                    {},
+                    mapPass([
+                        h('div', {}, [
+                            mapVNode(
+                                barMap,
+                                h('button', { id: 'button', onclick: change })
+                            ),
+                        ]),
+                    ])
+                )
+            ),
+    })
+    setTimeout(_ => {
+        event('button', 'click')
+        t.deepEqual(state(), { foo: 'original', bar: 'changed' })
+        t.end()
+    }, 0)
+})
+
+test.cb('mapPass does not prevent second outer map', t => {
+    const fooMap = makeMap(
+        x => x.foo,
+        (x, foo) => ({ ...x, foo })
+    )
+    const barMap = makeMap(
+        x => x.bar,
+        (x, bar) => ({ ...x, bar })
+    )
+    const change = state => 'changed'
+    const { state, event } = testApp({
+        init: { foo: 'original', bar: 'original' },
+        view: state =>
+            mapVNode(
+                fooMap,
+                h('div', {}, [
+                    mapVNode(
+                        barMap,
+                        h(
+                            'div',
+                            {},
+                            mapPass([
+                                h('button', { id: 'button', onclick: change }),
+                            ])
+                        )
+                    ),
+                ])
+            ),
+    })
+    setTimeout(_ => {
+        event('button', 'click')
+        t.deepEqual(state(), { foo: 'changed', bar: 'original' })
         t.end()
     }, 0)
 })
