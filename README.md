@@ -262,7 +262,7 @@ app({
         ...mapSubs(counterMap, counter.subscriptions(state.counter))
     ]
 })
-
+```
 
 Normally, inlining a transforming function like that in the subscriptions is dangerous, since it means that the subscriptions properties will be different each state-update, which will cause the subscriptions to restart continually. This case is safe, however, since `counterMap` is defined using `makeMap`. Action maps defined with `makeMap` are memoized so that repeated mappings of the same action will yield the same mapped action instance every time.
 
