@@ -258,9 +258,7 @@ In the main module, use it as such:
 ```js
 app({
     ...
-    subscriptions: state => [
-        ...mapSubs(counterMap, counter.subscriptions(state.counter))
-    ]
+    subscriptions: state => mapSubs(counterMap, counter.subscriptions(state.counter))
 })
 ```
 
