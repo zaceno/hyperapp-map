@@ -39,7 +39,7 @@ export const makeMap = (extract, merge) => {
         }
         return mappedAction
     }
-    memoizedMap.memo = new Map()
+    memoizedMap.memo = new WeakMap()
 
     let actualMap = actionStack => deepMap(memoizedMap, actionStack)
     return actualMap
